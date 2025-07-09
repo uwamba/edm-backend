@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/workflow",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\WorkFlow\\": "app/",
+            "Modules\\WorkFlow\\Database\\Factories\\": "database/factories/",
+            "Modules\\WorkFlow\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\WorkFlow\\Tests\\": "tests/"
+        }
+    }
+}
