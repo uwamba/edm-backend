@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\DocumentVersionController;
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FormController;
+use App\Http\Controllers\Api\SubmissionController;
+use App\Http\Controllers\Api\ApprovalController;
+
+
+Route::post('/token-login', [AuthController::class, 'tokenLogin']);
+Route::middleware('auth:sanctum')->post('/token-logout', [AuthController::class, 'tokenLogout']);
+
+Route::middleware('guest')->post('/login', [AuthController::class, 'login']);
+Route::get('/user', function (Request $request) {
+    return $request->user();
+})->middleware('auth:sanctum');
+
+
+
+
+Route::apiResource('documents', DocumentController::class);
+Route::apiResource('document-versions', DocumentVersionController::class);
+Route::apiResource('tags', TagController::class);
+Route::apiResource('audit-logs', AuditLogController::class);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('forms', FormController::class);
+    Route::apiResource('submissions', SubmissionController::class)->only(['index','store','show','destroy']);
+    Route::post('workflow/{workflow}/approve', [ApprovalController::class, 'approve']);
+    Route::post('workflow/{workflow}/reject', [ApprovalController::class, 'reject']);
+});

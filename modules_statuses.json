@@ -1,5 +1,6 @@
 {
     "Documents": true,
     "WorkFlow": true,
-    "Users": true
+    "Users": true,
+    "Blog": true
 }
