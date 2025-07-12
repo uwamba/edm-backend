@@ -3,6 +3,8 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\ApprovalProcessResource;
+use App\Http\Resources\FieldResource;
 
 class FormResource extends JsonResource
 {

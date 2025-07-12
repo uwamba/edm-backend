@@ -20,7 +20,10 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-
+Route::apiResource('forms', FormController::class);
+Route::apiResource('submissions', SubmissionController::class)->only(['index', 'store', 'show', 'destroy']);
+Route::post('workflow/{workflow}/approve', [ApprovalController::class, 'approve']);
+Route::post('workflow/{workflow}/reject', [ApprovalController::class, 'reject']);
 
 
 Route::apiResource('documents', DocumentController::class);
@@ -30,8 +33,5 @@ Route::apiResource('audit-logs', AuditLogController::class);
 
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('forms', FormController::class);
-    Route::apiResource('submissions', SubmissionController::class)->only(['index','store','show','destroy']);
-    Route::post('workflow/{workflow}/approve', [ApprovalController::class, 'approve']);
-    Route::post('workflow/{workflow}/reject', [ApprovalController::class, 'reject']);
+
 });
