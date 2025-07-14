@@ -20,8 +20,12 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::post('form/submissions', [SubmissionController::class, 'submit']);
+
+Route::get('form/submissions/list', [SubmissionController::class, 'index']);
+Route::get('submissions/{id}', [SubmissionController::class, 'show']);
+
 Route::apiResource('forms', FormController::class);
-Route::apiResource('submissions', SubmissionController::class)->only(['index', 'store', 'show', 'destroy']);
 Route::post('workflow/{workflow}/approve', [ApprovalController::class, 'approve']);
 Route::post('workflow/{workflow}/reject', [ApprovalController::class, 'reject']);
 

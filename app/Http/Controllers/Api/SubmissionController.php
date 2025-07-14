@@ -8,6 +8,10 @@ use App\Models\ApprovalProcess;
 use App\Models\Submission;
 use Illuminate\Http\Request;
 use App\Models\Form;
+use App\Models\SubmissionField;
+
+
+use Illuminate\Support\Facades\Log;
 
 class SubmissionController extends Controller
 {
@@ -17,45 +21,92 @@ class SubmissionController extends Controller
         return SubmissionResource::collection($submissions);
     }
 
-    public function submit(Request $request, Form $form)
-{
-    $rules = [];
-    foreach ($form->fields as $field) {
-        $fieldRules = [];
-        if ($field['required']) {
-            $fieldRules[] = 'required';
+
+
+    public function submit(Request $request)
+    {
+        Log::info('Submit called', ['request_all' => $request->all()]);
+
+        $formId = $request->input('form_id');
+        Log::info('Form ID from request', ['form_id' => $formId]);
+
+        $form = Form::with('fields')->findOrFail($formId);
+
+        Log::info('Form found', ['form_id' => $form->id, 'data' => $form->fields]);
+
+        $rules = [];
+
+        $validated = $request->validate([
+            'data' => ['required', 'array'],
+        ]);
+
+        $data = $validated['data'];
+
+        // Now validate each field inside data
+        foreach ($form->fields as $field) {
+            $key = 'field_' . $field->id;
+
+            $fieldRules = $field['required'] ? ['required'] : ['nullable'];
+
+            foreach ($field['validations'] ?? [] as $validation) {
+                switch ($validation['type']) {
+                    case 'min':
+                        $fieldRules[] = "min:{$validation['value']}";
+                        break;
+                    case 'max':
+                        $fieldRules[] = "max:{$validation['value']}";
+                        break;
+                    case 'regex':
+                        $fieldRules[] = "regex:{$validation['value']}";
+                        break;
+                    case 'fileSize':
+                        $fieldRules[] = "file|max:{$validation['value']}";
+                        break;
+                    case 'fileType':
+                        $fieldRules[] = "file|mimes:{$validation['value']}";
+                        break;
+                }
+            }
+
+            $rules["data.$key"] = $fieldRules;
         }
-        foreach ($field['validations'] ?? [] as $validation) {
-            switch ($validation['type']) {
-                case 'min':
-                    $fieldRules[] = "min:{$validation['value']}";
-                    break;
-                case 'max':
-                    $fieldRules[] = "max:{$validation['value']}";
-                    break;
-                case 'regex':
-                    $fieldRules[] = "regex:{$validation['value']}";
-                    break;
-                case 'fileSize':
-                    $fieldRules[] = "max:{$validation['value']}"; // size in KB
-                    break;
-                case 'fileType':
-                    $fieldRules[] = "mimes:{$validation['value']}";
-                    break;
+
+        // Re-validate with field rules
+        $validated = $request->validate($rules);
+        $data = $validated['data']; // Extract only the field data
+
+
+        foreach ($form->fields as $field) {
+            $key = 'field_' . $field->id;
+            if ($field->type === 'file' && $request->hasFile($key)) {
+                $uploadedFile = $request->file($key);
+                $path = $uploadedFile->store('uploads/forms');
+                $validated[$key] = $path;
             }
         }
-        $rules[$field['label']] = implode('|', $fieldRules);
+
+        $submission = $form->submissions()->create([
+            'user_id' => 1,
+        ]);
+
+        Log::info('validation', ['data' => $data]);
+
+        foreach ($data as $key => $value) {
+            SubmissionField::create([
+                'submission_id' => $submission->id,
+                'field_id' => (int) str_replace('field_', '', $key),
+                'value' => is_array($value) ? json_encode($value) : $value,
+            ]);
+
+        }
+
+
+        return response()->json(['message' => 'Submission successful']);
     }
 
-    $validated = $request->validate($rules);
 
-    $form->submissions()->create([
-        'data' => $validated,
-        'submitted_by' => auth()->id() ?? null,
-    ]);
 
-    return response()->json(['message' => 'Submission successful']);
-}
+
 
 
     public function store(Request $request)
@@ -85,9 +136,15 @@ class SubmissionController extends Controller
         return new SubmissionResource($submission->load(['form', 'user', 'workflow.currentStep.approver']));
     }
 
-    public function show(Submission $submission)
+    public function show($id)
     {
-        return new SubmissionResource($submission->load(['form', 'user', 'workflow.currentStep.approver']));
+        $submission = Submission::find($id);
+
+        if (!$submission) {
+            return response()->json(['message' => 'Submission not found'], 404);
+        }
+
+        return response()->json($submission);
     }
 
     public function destroy(Submission $submission)

@@ -38,16 +38,16 @@ class FormController extends Controller
         'fields.*.required' => 'required|boolean',
         'fields.*.validations' => 'nullable|array',
         'fields.*.conditions' => 'nullable|array',
+        'fields.*.parentField' => 'nullable|string|max:255',
+        'fields.*.parentMapping' => 'nullable|array',
     ]);
 
-    // Save the form
     $form = Form::create([
         'title' => $validated['title'],
         'description' => $validated['description'],
-        'created_by' => auth()->id() ?? 1, // fallback to user id 1 for testing
+        'created_by' => auth()->id() ?? 1,
     ]);
 
-    // Save fields
     foreach ($validated['fields'] as $field) {
         Field::create([
             'form_id' => $form->id,
@@ -57,14 +57,17 @@ class FormController extends Controller
             'required' => $field['required'],
             'validations' => $field['validations'] ?? [],
             'conditions' => $field['conditions'] ?? [],
+            'parentField' => $field['parentField'] ?? null,
+            'parentMapping' => $field['parentMapping'] ?? [],
         ]);
     }
 
     return response()->json([
         'message' => 'Form created successfully',
-        'form' => $form->load('fields')
+        'form' => $form->load('fields'),
     ], 201);
 }
+
 
     /**
      * Display the specified form with its fields.

@@ -14,13 +14,21 @@ class Field extends Model
         'label',
         'type',
         'options',
-        'required'
+        'required',
+        'validations',
+        'conditions',
+        'parentField',
+        'parentMapping',
     ];
 
+   
     protected $casts = [
-        'options' => 'array',
-        'required' => 'boolean',
-    ];
+    'options' => 'array',
+    'validations' => 'array',
+    'conditions' => 'array',
+    'parentMapping' => 'array',
+];
+
 
     public function form()
     {

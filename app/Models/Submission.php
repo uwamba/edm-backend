@@ -33,4 +33,9 @@ class Submission extends Model
     {
         return $this->hasOne(Workflow::class);
     }
+    public function fields()
+{
+    return $this->hasMany(SubmissionField::class);
+}
+
 }

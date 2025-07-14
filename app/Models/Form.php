@@ -11,13 +11,9 @@ class Form extends Model
     protected $fillable = [
         'title',
         'description',
-        'fields',
         'created_by'
     ];
 
-    protected $casts = [
-        'fields' => 'array',
-    ];
 
     public function creator()
     {
