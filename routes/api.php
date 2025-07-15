@@ -10,6 +10,18 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FormController;
 use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\ApprovalController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\CompanyController;
+
+
+
+
+Route::apiResource('companies', CompanyController::class);
+
+Route::apiResource('users', UserController::class);
+Route::post('/approval-processes', [ApprovalController::class, 'store']);
+Route::get('/forms/{form}/approval-process', [ApprovalController::class, 'show']);
+
 
 
 Route::post('/token-login', [AuthController::class, 'tokenLogin']);
