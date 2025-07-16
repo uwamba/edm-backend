@@ -23,86 +23,87 @@ class SubmissionController extends Controller
 
 
 
-    public function submit(Request $request)
-    {
-        Log::info('Submit called', ['request_all' => $request->all()]);
+   // You are trying to get form_id from request body, but it's coming from the URL.
+// Fix: get it directly from route parameter
 
-        $formId = $request->input('form_id');
-        Log::info('Form ID from request', ['form_id' => $formId]);
+public function submissions(Request $request, $form_id)
+{
+    \Log::info('Submit called', ['request_all' => $request->all()]);
 
-        $form = Form::with('fields')->findOrFail($formId);
+    // form_id comes from the URL now
+    \Log::info('Form ID from route param', ['form_id' => $form_id]);
 
-        Log::info('Form found', ['form_id' => $form->id, 'data' => $form->fields]);
+    $form = Form::with('fields')->findOrFail($form_id);
 
-        $rules = [];
+    \Log::info('Form found', ['form_id' => $form->id, 'data' => $form->fields]);
 
-        $validated = $request->validate([
-            'data' => ['required', 'array'],
-        ]);
+    $rules = [];
 
-        $data = $validated['data'];
+    $validated = $request->validate([
+        'data' => ['required', 'array'],
+    ]);
 
-        // Now validate each field inside data
-        foreach ($form->fields as $field) {
-            $key = 'field_' . $field->id;
+    $data = $validated['data'];
 
-            $fieldRules = $field['required'] ? ['required'] : ['nullable'];
+    foreach ($form->fields as $field) {
+        $key = 'field_' . $field->id;
 
-            foreach ($field['validations'] ?? [] as $validation) {
-                switch ($validation['type']) {
-                    case 'min':
-                        $fieldRules[] = "min:{$validation['value']}";
-                        break;
-                    case 'max':
-                        $fieldRules[] = "max:{$validation['value']}";
-                        break;
-                    case 'regex':
-                        $fieldRules[] = "regex:{$validation['value']}";
-                        break;
-                    case 'fileSize':
-                        $fieldRules[] = "file|max:{$validation['value']}";
-                        break;
-                    case 'fileType':
-                        $fieldRules[] = "file|mimes:{$validation['value']}";
-                        break;
-                }
-            }
+        $fieldRules = $field['required'] ? ['required'] : ['nullable'];
 
-            $rules["data.$key"] = $fieldRules;
-        }
-
-        // Re-validate with field rules
-        $validated = $request->validate($rules);
-        $data = $validated['data']; // Extract only the field data
-
-
-        foreach ($form->fields as $field) {
-            $key = 'field_' . $field->id;
-            if ($field->type === 'file' && $request->hasFile($key)) {
-                $uploadedFile = $request->file($key);
-                $path = $uploadedFile->store('uploads/forms');
-                $validated[$key] = $path;
+        foreach ($field['validations'] ?? [] as $validation) {
+            switch ($validation['type']) {
+                case 'min':
+                    $fieldRules[] = "min:{$validation['value']}";
+                    break;
+                case 'max':
+                    $fieldRules[] = "max:{$validation['value']}";
+                    break;
+                case 'regex':
+                    $fieldRules[] = "regex:{$validation['value']}";
+                    break;
+                case 'fileSize':
+                    $fieldRules[] = "file|max:{$validation['value']}";
+                    break;
+                case 'fileType':
+                    $fieldRules[] = "file|mimes:{$validation['value']}";
+                    break;
             }
         }
 
-        $submission = $form->submissions()->create([
-            'user_id' => 1,
-        ]);
-
-        Log::info('validation', ['data' => $data]);
-
-        foreach ($data as $key => $value) {
-            SubmissionField::create([
-                'submission_id' => $submission->id,
-                'field_id' => (int) str_replace('field_', '', $key),
-                'value' => is_array($value) ? json_encode($value) : $value,
-            ]);
-
-        }
-
-
-        return response()->json(['message' => 'Submission successful']);
+        $rules["data.$key"] = $fieldRules;
     }
+
+    $validated = $request->validate($rules);
+    $data = $validated['data'];
+
+    foreach ($form->fields as $field) {
+        $key = 'field_' . $field->id;
+        if ($field->type === 'file' && $request->hasFile("data.$key")) {
+            $uploadedFile = $request->file("data.$key");
+            $path = $uploadedFile->store('uploads/forms');
+            $data[$key] = $path;
+        }
+    }
+
+    $submission = $form->submissions()->create([
+        'user_id' => 1,
+    ]);
+
+    \Log::info('validation', ['data' => $data]);
+
+    foreach ($data as $key => $value) {
+        SubmissionField::create([
+            'submission_id' => $submission->id,
+            'field_id' => (int) str_replace('field_', '', $key),
+            'value' => is_array($value) ? json_encode($value) : $value,
+        ]);
+    }
+
+    return response()->json(['message' => 'Submission successful']);
+}
+
+// Route should match
+
 
 
 

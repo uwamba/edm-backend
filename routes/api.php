@@ -32,7 +32,7 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('form/submissions', [SubmissionController::class, 'submit']);
+Route::post('form/{form_id}/submissions', [SubmissionController::class, 'submissions']);
 
 Route::get('form/submissions/list', [SubmissionController::class, 'index']);
 Route::get('submissions/{id}', [SubmissionController::class, 'show']);
