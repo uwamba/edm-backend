@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Http\Resources\DocumentResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -25,17 +26,32 @@ class DocumentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'path' => 'required|string',
-            'size' => 'required|integer',
-            'mime_type' => 'required|string',
-            'tags' => 'nullable|array',
-            'tags.*' => 'exists:tags,id',
-            'user_id' => 'required|exists:users,id'
+            'file' => 'required|file|max:10240', // 10MB max
+            'user_id' => 'required|exists:users,id',
+            'tags' => 'nullable|string', // comma-separated
         ]);
 
-        $document = Document::create($validated);
-        if (isset($validated['tags'])) {
-            $document->tags()->sync($validated['tags']);
+        if (!$request->hasFile('file')) {
+            return response()->json(['error' => 'No file uploaded'], 400);
+        }
+
+        $file = $request->file('file');
+        $year = now()->year;
+        $path = $file->store("documents/{$year}", 'public');
+
+        $document = Document::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'path' => $path,
+            'size' => $file->getSize(),
+            'mime_type' => $file->getClientMimeType(),
+            'user_id' => $validated['user_id'],
+        ]);
+
+        // Process comma-separated tag IDs
+        if (!empty($validated['tags'])) {
+            $tagIds = array_map('intval', explode(',', $validated['tags']));
+            $document->tags()->sync($tagIds);
         }
 
         return response()->json(new DocumentResource($document), 201);
@@ -48,14 +64,17 @@ class DocumentController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'tags' => 'nullable|array',
-            'tags.*' => 'exists:tags,id'
+            'tags' => 'nullable|string', // comma-separated
         ]);
 
-        $document->update($validated);
+        $document->update([
+            'name' => $validated['name'] ?? $document->name,
+            'description' => $validated['description'] ?? $document->description,
+        ]);
 
         if (isset($validated['tags'])) {
-            $document->tags()->sync($validated['tags']);
+            $tagIds = array_map('intval', explode(',', $validated['tags']));
+            $document->tags()->sync($tagIds);
         }
 
         return response()->json(new DocumentResource($document));

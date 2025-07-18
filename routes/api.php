@@ -43,6 +43,7 @@ Route::post('workflow/{workflow}/reject', [ApprovalController::class, 'reject'])
 
 
 Route::apiResource('documents', DocumentController::class);
+Route::post('/documents/upload', [DocumentController::class, 'upload']);
 Route::apiResource('document-versions', DocumentVersionController::class);
 Route::apiResource('tags', TagController::class);
 Route::apiResource('audit-logs', AuditLogController::class);
