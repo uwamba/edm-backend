@@ -47,4 +47,8 @@ class Document extends Model
     {
         return $this->belongsToMany(Tag::class, 'document_tag');
     }
+    public function folder()
+    {
+        return $this->belongsTo(Folder::class);
+    }
 }

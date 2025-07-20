@@ -18,7 +18,7 @@ class DocumentResource extends JsonResource
             'archived_at' => $this->archived_at,
             'created_at'  => $this->created_at,
             'updated_at'  => $this->updated_at,
-
+    
             'user' => $this->whenLoaded('user', function () {
                 return [
                     'id'    => $this->user->id,
@@ -26,16 +26,19 @@ class DocumentResource extends JsonResource
                     'email' => $this->user->email,
                 ];
             }),
-
-            'tags' => TagResource::collection($this->whenLoaded('tags')),
-
+    
+            'tags' => $this->whenLoaded('tags', function () {
+                return TagResource::collection($this->tags);
+            }),
+    
             'versions' => DocumentVersionResource::collection(
                 $this->whenLoaded('versions')
             ),
-
+    
             'audit_logs' => AuditLogResource::collection(
                 $this->whenLoaded('auditLogs')
             ),
         ];
     }
+    
 }
