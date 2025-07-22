@@ -4,8 +4,9 @@ return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],  // Allow API and Sanctum CSRF cookie path
     'allowed_methods' => ['*'],  // Allow all HTTP methods
     'allowed_origins' => [
-        'http://localhost:3000',  // Your frontend URL (change this if you deploy elsewhere)
-        // Add other domains here if you plan to have multiple frontend apps
+        'http://localhost:3000', 
+        'http://127.0.0.1:3000',
+       
     ],
     'allowed_headers' => ['*'],  // Allow all headers
     'exposed_headers' => [],
