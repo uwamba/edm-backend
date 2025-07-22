@@ -26,48 +26,52 @@ class FormController extends Controller
     /**
      * Store a newly created form with dynamic fields.
      */
-  public function store(Request $request)
-{
-    $validated = $request->validate([
-        'title' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'fields' => 'required|array',
-        'fields.*.label' => 'required|string|max:255',
-        'fields.*.type' => 'required|string',
-        'fields.*.options' => 'nullable|array',
-        'fields.*.required' => 'required|boolean',
-        'fields.*.validations' => 'nullable|array',
-        'fields.*.conditions' => 'nullable|array',
-        'fields.*.parentField' => 'nullable|string|max:255',
-        'fields.*.parentMapping' => 'nullable|array',
-    ]);
-
-    $form = Form::create([
-        'title' => $validated['title'],
-        'description' => $validated['description'],
-        'created_by' => auth()->id() ?? 1,
-    ]);
-
-    foreach ($validated['fields'] as $field) {
-        Field::create([
-            'form_id' => $form->id,
-            'label' => $field['label'],
-            'type' => $field['type'],
-            'options' => $field['options'] ?? [],
-            'required' => $field['required'],
-            'validations' => $field['validations'] ?? [],
-            'conditions' => $field['conditions'] ?? [],
-            'parentField' => $field['parentField'] ?? null,
-            'parentMapping' => $field['parentMapping'] ?? [],
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'fields' => 'required|array',
+            'fields.*.label' => 'required|string|max:255',
+            'fields.*.type' => 'required|string',
+            'fields.*.options' => 'nullable|array',
+            'fields.*.required' => 'required|boolean',
+            'fields.*.validations' => 'nullable|array',
+            'fields.*.conditions' => 'nullable|array',
+            'fields.*.parentField' => 'nullable|string|max:255',
+            'fields.*.parentMapping' => 'nullable|array',
+            'fields.*.parent_field_id' => 'nullable|integer',
         ]);
+    
+        // Create the form
+        $form = Form::create([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'created_by' => auth()->id() ?? 1,
+        ]);
+    
+        // Insert each field linked to this form
+        foreach ($validated['fields'] as $field) {
+            Field::create([
+                'form_id' => $form->id,
+                'label' => $field['label'],
+                'type' => $field['type'],
+                'options' => $field['options'] ?? [],
+                'required' => $field['required'],
+                'validations' => $field['validations'] ?? [],
+                'conditions' => $field['conditions'] ?? [],
+                'parentField' => $field['parentField'] ?? null,
+                'parentMapping' => $field['parentMapping'] ?? [],
+                'parent_field_id' => $field['parent_field_id'] ?? null,
+            ]);
+        }
+    
+        return response()->json([
+            'message' => 'Form created successfully',
+            'form' => $form->load('fields'),
+        ], 201);
     }
-
-    return response()->json([
-        'message' => 'Form created successfully',
-        'form' => $form->load('fields'),
-    ], 201);
-}
-
+    
 
     /**
      * Display the specified form with its fields.

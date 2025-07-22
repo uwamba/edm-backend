@@ -17,7 +17,14 @@ class SubmissionController extends Controller
 {
     public function index()
     {
-        $submissions = Submission::with(['form', 'user', 'workflow.currentStep.approver'])->paginate(10);
+        $submissions = Submission::with([
+            'user',
+            'form.creator',
+            'fields.field',
+            'approvalProcess.steps.approver' // 👈 Load approval steps via form
+        ])->get();
+        
+        
         return SubmissionResource::collection($submissions);
     }
 

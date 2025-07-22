@@ -19,9 +19,9 @@ class Field extends Model
         'conditions',
         'parentField',
         'parentMapping',
+        'parent_field_id', // Added for parent-child relationship
     ];
 
-   
     protected $casts = [
     'options' => 'array',
     'validations' => 'array',
@@ -34,4 +34,9 @@ class Field extends Model
     {
         return $this->belongsTo(Form::class);
     }
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_field_id');
+    }
+    
 }

@@ -11,15 +11,12 @@ class ApprovalStepResource extends JsonResource
         return [
             'id' => $this->id,
             'step_number' => $this->step_number,
-            'approver_id' => $this->approver_id,
             'status' => $this->status,
-            'approver' => $this->whenLoaded('approver', function () {
-                return [
-                    'id' => $this->approver->id,
-                    'name' => $this->approver->name,
-                    'email' => $this->approver->email,
-                ];
-            }),
+            'approver' => $this->approver ? [
+                'id' => $this->approver->id,
+                'name' => $this->approver->name,
+                'email' => $this->approver->email,
+            ] : null,
         ];
     }
 }

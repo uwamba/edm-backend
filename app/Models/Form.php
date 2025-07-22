@@ -35,8 +35,5 @@ class Form extends Model
         return $this->hasMany(Submission::class);
     }
 
-    public function workflows()
-    {
-        return $this->hasMany(Workflow::class);
-    }
+   
 }
