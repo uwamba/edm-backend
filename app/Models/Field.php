@@ -34,9 +34,15 @@ class Field extends Model
     {
         return $this->belongsTo(Form::class);
     }
-    public function children()
-    {
-        return $this->hasMany(self::class, 'parent_field_id');
-    }
+   public function children()
+{
+    return $this->hasMany(Field::class, 'parent_field_id');
+}
+
+public function parent()
+{
+    return $this->belongsTo(Field::class, 'parent_field_id');
+}
+
     
 }
