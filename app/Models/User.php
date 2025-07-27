@@ -4,19 +4,20 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;  // <-- Add this import
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;  // <-- Make sure HasApiTokens is included
+    use HasApiTokens, Notifiable, HasRoles;
 
     protected $fillable = [
         'name',
         'email',
         'password',
         'company_id',
-        'job_title',
-        'manager_id', // NEW: user’s direct manager
+        'manager_id',
+        'job_title_id', 
     ];
 
     // Relationship: user belongs to a company
@@ -50,6 +51,11 @@ class User extends Authenticatable
 
         return $chain;
     }
+    // app/Models/User.php
+
+public function jobTitle()
+{
+    return $this->belongsTo(JobTitle::class);
 }
 
-
+}

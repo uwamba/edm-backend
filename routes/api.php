@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\RoleController;
 
 
 
@@ -19,6 +20,10 @@ use App\Http\Controllers\Api\CompanyController;
 Route::apiResource('companies', CompanyController::class);
 
 Route::apiResource('users', UserController::class);
+
+Route::apiResource('job-titles', \App\Http\Controllers\Api\JobTitleController::class);
+
+
 Route::post('/approval-processes', [ApprovalController::class, 'store']);
 Route::get('/forms/{form}/approval-process', [ApprovalController::class, 'show']);
 
@@ -38,8 +43,14 @@ Route::get('form/submissions/list', [SubmissionController::class, 'index']);
 Route::get('submissions/{id}', [SubmissionController::class, 'show']);
 
 Route::apiResource('forms', FormController::class);
-Route::post('workflow/{workflow}/approve', [ApprovalController::class, 'approve']);
-Route::post('workflow/{workflow}/reject', [ApprovalController::class, 'reject']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('approval-step/approve', [ApprovalController::class, 'approve']);
+    Route::post('approval-step/reject', [ApprovalController::class, 'reject']);
+});
+
+
 
 
 Route::apiResource('documents', DocumentController::class);

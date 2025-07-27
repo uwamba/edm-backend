@@ -13,6 +13,7 @@ class ApprovalStep extends Model
         'approval_process_id',
         'step_number',
         'approver_id',
+        'job_title_id',
         'status'
     ];
 
@@ -24,5 +25,10 @@ class ApprovalStep extends Model
     public function approver()
     {
         return $this->belongsTo(\App\Models\User::class, 'approver_id');
+    }
+
+    public function jobTitle()
+    {
+        return $this->belongsTo(\App\Models\JobTitle::class, 'job_title_id');
     }
 }

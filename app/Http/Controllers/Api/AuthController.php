@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+
 
 class AuthController extends Controller
 {
@@ -30,7 +32,8 @@ class AuthController extends Controller
             'user' => Auth::user(),
         ]);
     }
-    public function tokenLogin(Request $request)
+
+   public function tokenLogin(Request $request)
 {
     $credentials = $request->validate([
         'email' => ['required', 'email'],
@@ -43,12 +46,22 @@ class AuthController extends Controller
         ]);
     }
 
-    $token = $request->user()->createToken('api-token')->plainTextToken;
+    // Explicitly retrieve authenticated user after attempt
+    $user = Auth::user();
+    if (!$user) {
+        throw ValidationException::withMessages([
+            'email' => ['User not found.'],
+        ]);
+    }
+    Log::info('User logged in', ['user_id' => $user->id, 'email' => $user->email]);
+    // Create token using authenticated user
+    $token = $user->createToken('api-token')->plainTextToken;
 
     return response()->json([
         'token' => $token,
-        'user' => $request->user(),
+        'user' => $user,
     ]);
+
 }
 
 public function tokenLogout(Request $request)

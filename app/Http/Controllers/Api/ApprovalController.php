@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Workflow;
 use Illuminate\Http\Request;
-
+use App\Models\ApprovalStep;
+use App\Models\ApprovalProcess;
+use Illuminate\Support\Facades\Auth;
 class ApprovalController extends Controller
 {
 
     public function show($formId)
     {
-        $process = \App\Models\ApprovalProcess::with(['steps.approver'])
+        $process = ApprovalProcess::with(['steps.jobTitle'])
             ->where('form_id', $formId)
             ->first();
 
@@ -31,10 +32,10 @@ class ApprovalController extends Controller
             'description' => 'nullable|string',
             'steps' => 'required|array|min:1',
             'steps.*.step_number' => 'required|integer|min:1',
-            'steps.*.approver_id' => 'required|exists:users,id',
+            'steps.*.job_title_id' => 'required|exists:job_titles,id',
         ]);
 
-        $process = \App\Models\ApprovalProcess::create([
+        $process = ApprovalProcess::create([
             'form_id' => $validated['form_id'],
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
@@ -43,94 +44,95 @@ class ApprovalController extends Controller
         foreach ($validated['steps'] as $step) {
             $process->steps()->create([
                 'step_number' => $step['step_number'],
-                'approver_id' => $step['approver_id'],
+                'job_title_id' => $step['job_title_id'],
                 'status' => 'pending',
             ]);
         }
 
-        return response()->json([
-            'message' => 'Approval process created successfully',
-            'id' => $process->id,
-        ]);
+        return response()->json(['message' => 'Approval process created successfully.'], 201);
     }
 
 
-    /**
-     * Approve the current workflow step.
-     */
-    public function approve(Request $request, Workflow $workflow)
-    {
-        $user = $request->user();
-        $step = $workflow->currentStep;
 
-        // Check if the current user is authorized to approve
-        if (!$step || $step->approver_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized or no current step'], 403);
-        }
 
-        // Update step status
-        $step->update([
-            'status' => 'approved',
-            'comment' => $request->input('comment', null), // Optional comment
-        ]);
 
-        // Find the next step in the approval process
-        $nextStep = $workflow->submission->form->approvalProcess
-            ->steps()
-            ->where('step_number', '>', $step->step_number)
-            ->orderBy('step_number')
-            ->first();
 
-        if ($nextStep) {
-            // Move workflow to next step
-            $workflow->update([
-                'current_step_id' => $nextStep->id,
-            ]);
-
-            return response()->json([
-                'message' => 'Step approved. Workflow moved to next step.',
-                'next_step' => $nextStep->id,
-            ]);
-        } else {
-            // All steps approved, mark workflow as complete
-            $workflow->update([
-                'status' => 'approved',
-                'current_step_id' => null,
-            ]);
-
-            return response()->json([
-                'message' => 'Workflow fully approved.',
-            ]);
-        }
+public function approve(Request $request)
+{
+    $user = Auth::user();
+    if (!$user) {
+    return response()->json(['error' => 'Unauthenticated.'], 401);
     }
 
-    /**
-     * Reject the current workflow step.
-     */
-    public function reject(Request $request, Workflow $workflow)
-    {
-        $user = $request->user();
-        $step = $workflow->currentStep;
 
-        // Check if the current user is authorized to reject
-        if (!$step || $step->approver_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized or no current step'], 403);
-        }
+    $approvalStepId = $request->input('approval_step_id');
+    $approvalStep = ApprovalStep::find($approvalStepId);
 
-        // Update step status to rejected
-        $step->update([
-            'status' => 'rejected',
-            'comment' => $request->input('comment', null), // Optional comment
-        ]);
-
-        // Mark workflow as rejected and stop further steps
-        $workflow->update([
-            'status' => 'rejected',
-            'current_step_id' => null,
-        ]);
-
-        return response()->json([
-            'message' => 'Workflow rejected and stopped.',
-        ]);
+    if (!$approvalStep) {
+        return response()->json(['error' => 'Approval step not found'], 404);
     }
+
+    $approvalProcess = $approvalStep->approvalProcess;
+
+    if (!$approvalProcess) {
+        return response()->json(['error' => 'Approval process not found'], 404);
+    }
+
+    $precedingStepsNotApproved = $approvalProcess->steps()
+        ->where('step_number', '<', $approvalStep->step_number)
+        ->where('status', '!=', 'approved')
+        ->exists();
+
+    if ($precedingStepsNotApproved) {
+        return response()->json(['error' => 'Cannot approve before previous steps are approved'], 403);
+    }
+
+    if ($approvalStep->job_title_id !== $user->job_title_id) {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
+    $approvalStep->update([
+        'status' => 'approved',
+        'comment' => $request->input('comment', null),
+    ]);
+
+    $pendingStepsRemain = $approvalProcess->steps()
+        ->where('status', 'pending')
+        ->exists();
+
+    if (!$pendingStepsRemain) {
+        $approvalProcess->update(['status' => 'approved']);
+        return response()->json(['message' => 'Final step approved. Process completed.']);
+    }
+
+    return response()->json(['message' => 'Step approved successfully.']);
+}
+
+
+public function reject(Request $request, ApprovalStep $approvalStep)
+{
+    $user = $request->user();
+
+    // Ensure user is allowed to reject
+    if ($approvalStep->job_title_id !== $user->job_title_id) {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
+
+    // Reject the step
+    $approvalStep->update([
+        'status' => 'rejected',
+        'comment' => $request->input('comment', null),
+    ]);
+
+    // End the approval process
+    $approvalProcess = $approvalStep->approvalProcess;
+    $approvalProcess->update([
+        'status' => 'rejected',
+    ]);
+
+    return response()->json(['message' => 'Step rejected. Approval process terminated.']);
+}
+
+
+
 }

@@ -42,10 +42,10 @@ public function approvalProcess()
     return $this->hasOneThrough(
         ApprovalProcess::class,
         Form::class,
-        'id',            // Local key on Form (Form.id)
-        'form_id',       // Foreign key on ApprovalProcess (approval_process.form_id)
-        'form_id',       // Foreign key on Submission (submission.form_id)
-        'id'             // Local key on ApprovalProcess (approval_process.id)
+        'id',          
+        'form_id',   
+        'form_id',      
+        'id'             
     );
 }
 
