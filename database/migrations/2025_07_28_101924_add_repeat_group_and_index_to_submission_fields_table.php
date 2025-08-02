@@ -8,15 +8,22 @@ class AddRepeatGroupAndIndexToSubmissionFieldsTable extends Migration
 {
     public function up()
     {
-        Schema::table('submission_fields', function (Blueprint $table) {
-            $table->integer('repeat_group')->nullable()->after('value')->comment('Group number for repeated child fields');
-        });
+        if (!Schema::hasColumn('submission_fields', 'repeat_group')) {
+            Schema::table('submission_fields', function (Blueprint $table) {
+                $table->integer('repeat_group')
+                      ->nullable()
+                      ->after('value')
+                      ->comment('Group number for repeated child fields');
+            });
+        }
     }
 
     public function down()
     {
-        Schema::table('submission_fields', function (Blueprint $table) {
-            $table->dropColumn('repeat_group');
-        });
+        if (Schema::hasColumn('submission_fields', 'repeat_group')) {
+            Schema::table('submission_fields', function (Blueprint $table) {
+                $table->dropColumn('repeat_group');
+            });
+        }
     }
 }

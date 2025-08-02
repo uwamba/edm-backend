@@ -3,47 +3,31 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\TagResource;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 
 class TagController extends Controller
 {
+    // Fetch all tags (id and name)
     public function index()
     {
-        return TagResource::collection(Tag::paginate(10));
+        $tags = Tag::select('id', 'name')->orderBy('name')->get();
+        return response()->json($tags);
     }
 
+    // Create a new tag with name and optional value
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'name' => 'required|string|max:255|unique:tags,name',
+            'value' => 'nullable|string|max:255',
         ]);
 
-        $tag = Tag::create($validated);
-
-        return new TagResource($tag);
-    }
-
-    public function show(Tag $tag)
-    {
-        return new TagResource($tag);
-    }
-
-    public function update(Request $request, Tag $tag)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:tags,name,' . $tag->id,
+        $tag = Tag::create([
+            'name' => $request->name,
+            'value' => $request->value ?? null,
         ]);
 
-        $tag->update($validated);
-
-        return new TagResource($tag);
-    }
-
-    public function destroy(Tag $tag)
-    {
-        $tag->delete();
-        return response()->json(null, 204);
+        return response()->json($tag, 201);
     }
 }

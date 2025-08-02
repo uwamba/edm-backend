@@ -16,6 +16,13 @@ use App\Http\Controllers\Api\RoleController;
 
 
 
+use App\Http\Controllers\Api\ModelTypeController;
+
+// routes/api.php
+Route::get('/model-types', [ModelTypeController::class, 'index']);
+Route::post('/model-types', [ModelTypeController::class, 'store']);
+Route::get('/tags', [TagController::class, 'index']);
+Route::post('/tags', [TagController::class, 'store']);
 
 Route::apiResource('companies', CompanyController::class);
 

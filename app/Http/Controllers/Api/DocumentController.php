@@ -13,7 +13,7 @@ class DocumentController extends Controller
     public function index()
     {
         return DocumentResource::collection(
-            Document::with(['user', 'versions', 'tags'])->paginate(10)
+            Document::with(['user', 'versions', 'tags'])->paginate(100)
         );
     }
 
@@ -37,55 +37,47 @@ class DocumentController extends Controller
     
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'document' => 'required|file|max:20480',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'tags' => 'nullable|string', // JSON array
-            'user_id' => 'required|exists:users,id',
-        ]);
-    
-        $year = now()->year;
-        $folder = "documents/{$year}";
-    
-        // Laravel automatically reuses the folder — no need to re-create if exists
-        $path = $request->file('document')->store($folder, 'public');
-    
-        // Avoid duplicate document record for same file name and user
-        $existing = Document::where('name', $request->name)
-            ->where('user_id', $request->user_id)
-            ->first();
-    
-        if ($existing) {
-            return response()->json([
-                'message' => 'Document with this name already exists for this user.',
-            ], 409); // Conflict
+{
+    $request->validate([
+        'document' => 'required|file|max:20480',
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'tags' => 'nullable|string', // JSON array
+        'user_id' => 'required|exists:users,id',
+        'model_type_id' => 'nullable|exists:model_types,id',
+        'security_level' => 'nullable|in:Confidential,Secret,Internal,External',
+    ]);
+
+    $year = now()->year;
+    $folder = "documents/{$year}";
+
+    $path = $request->file('document')->store($folder, 'public');
+
+
+    $document = Document::create([
+        'name' => $request->name,
+        'description' => $request->description,
+        'path' => $path,
+        'size' => $request->file('document')->getSize(),
+        'mime_type' => $request->file('document')->getMimeType(),
+        'user_id' => $request->user_id,
+        'model_type_id' => $request->model_type_id,
+        'security_level' => $request->security_level,
+    ]);
+
+    if ($request->filled('tags')) {
+        $tagIds = json_decode($request->tags, true);
+        if (is_array($tagIds)) {
+            $document->tags()->sync($tagIds);
         }
-    
-        // Create a new record for this upload
-        $document = Document::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'path' => $path,
-            'size' => $request->file('document')->getSize(),
-            'mime_type' => $request->file('document')->getMimeType(),
-            'user_id' => $request->user_id,
-        ]);
-    
-        // Attach tags if provided
-        if ($request->filled('tags')) {
-            $tagIds = json_decode($request->tags, true);
-            if (is_array($tagIds)) {
-                $document->tags()->sync($tagIds);
-            }
-        }
-    
-        return response()->json([
-            'message' => 'Document uploaded successfully.',
-            'data' => $document,
-        ]);
     }
+
+    return response()->json([
+        'message' => 'Document uploaded successfully.',
+        'data' => $document,
+    ]);
+}
+
 
     public function update(Request $request, $id)
     {
