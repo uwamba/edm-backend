@@ -118,27 +118,38 @@ class DocumentController extends Controller
     public function update(Request $request, $id)
     {
         $document = Document::findOrFail($id);
-
+    
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'tags' => 'nullable|string', // JSON string from frontend
+            'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:20480', // max 20MB
         ]);
-
-        $document->update([
-            'name' => $validated['name'] ?? $document->name,
-            'description' => $validated['description'] ?? $document->description,
-        ]);
-
-        if (isset($validated['tags'])) {
-            $tagIds = json_decode($validated['tags'], true);
-            if (is_array($tagIds)) {
-                $document->tags()->sync($tagIds);
+    
+        // update metadata
+        $document->name = $validated['name'] ?? $document->name;
+        $document->description = $validated['description'] ?? $document->description;
+    
+        // if a new file was uploaded → replace
+        if ($request->hasFile('file')) {
+            // delete old file if exists
+            if ($document->path && \Storage::disk('public')->exists($document->path)) {
+                \Storage::disk('public')->delete($document->path);
             }
+    
+            // store new file
+            $path = $request->file('file')->store('documents/' . date('Y'), 'public');
+    
+            $document->path = $path;
+            $document->mime_type = $request->file('file')->getClientMimeType();
+            $document->size = $request->file('file')->getSize();
         }
-
+    
+        $document->save();
+    
         return response()->json(new DocumentResource($document));
     }
+    
+    
 
     public function destroy($id)
     {
